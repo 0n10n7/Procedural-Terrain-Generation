@@ -7,7 +7,7 @@
 #include "raymath.h"
 #include "terrainGen.c"
 
-const int tileSize = 5;
+const int tileSize = 1;
 
 typedef struct Vector2 v2f;
 
@@ -18,10 +18,20 @@ typedef enum GameState
     STATE_SPELLBOOK,
     STATE_GAMEOVER
 } GameState;
+typedef enum View
+{
+    LAND_WATER,
+    TECTONICPLATES,
+    CURRENTS,
+    ELEVATION,
+    LAST
+} View;
+
 
 int main()
 {
     GameState gameState = STATE_MENU;
+    View view = LAND_WATER;
     time_t t;
     srand((unsigned)time(&t));
 
@@ -29,29 +39,18 @@ int main()
     // DISPLAY SETTINGS
     // ----------------
     // 1120,1280 är *5
-    v2f windowSize = {1120, 1286};
+    //v2f windowSize = {1120, 1286};
     // v2f windowSize = {560, 606};
     // v2f windowSize = {1440, 900};
-    // v2f windowSize = {2560, 1440};
-    InitWindow(windowSize.x, windowSize.y, "SpellJam");
-    //ToggleFullscreen();
-    // SetTargetFPS(10);
-
-    // Load textures
-    Texture2D worldSprites = LoadTexture("Assets/world.png");
+    v2f windowSize = {2560, 1440};
+    InitWindow(windowSize.x, windowSize.y, "ProceduralTerrainGen");
+    ToggleFullscreen();
 
     // Initialize inputs
-    bool upDown = false;
-    bool downDown = false;
-    bool leftDown = false;
-    bool rightDown = false;
     bool eDown =false;
-    bool squarePressed = false;
-    bool trianglePressed = false;
-    bool circlePressed = false;
     bool executePressed = false;
 
-    
+    TerrainGenerator();
 
     while (!WindowShouldClose())
     {
@@ -62,7 +61,8 @@ int main()
             executePressed = IsKeyPressed(KEY_DOWN);
             eDown = IsKeyPressed(KEY_E);
             BeginDrawing();
-            ClearBackground(BLACK);
+            ClearBackground(GRAY);
+            DrawText("press down to continue",20,20,40,(Color){200,200,255,255});
             EndDrawing();
             if(executePressed){
                 gameState = STATE_GAME;
@@ -74,13 +74,64 @@ int main()
         break;
         case STATE_GAME:
         {
-            
+            executePressed = IsKeyPressed(KEY_DOWN);
+            eDown = IsKeyPressed(KEY_E);
+            bool water = true;
+            if(executePressed){
+                TerrainGenerator();
+            }
+            if(eDown){
+                if(view<LAST){
+                    view++;
+                }
+                else{
+                    view=0;
+                }
+            }
             // ------
             // RENDER
             // ------
             BeginDrawing();
             ClearBackground(BLACK);
+            for (int x = 0; x < worldSize; x++)
+            {
+                for (int y = 0; y < worldSize; y++)
+                {
+                    switch (view)
+                    {
+                    case TECTONICPLATES:
+                        DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, (Color){10 *(map.tectonicsplates.grid[x][y]%11) + 70 , 50 * (map.tectonicsplates.grid[x][y]%5), 70 * (map.tectonicsplates.grid[x][y]%3), 255});
+                        break;
+                    
+                    case LAND_WATER:
+                        if(map.tectonicsplates.water[map.tectonicsplates.grid[x][y]]==true ){
+                            //(map.tectonicsplates.grid[x][y]%4 +1)
+                            DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, (Color){15 * (map.tectonicsplates.grid[x][y]%3), 25 * (map.tectonicsplates.grid[x][y]%4 +1), 175 + 25 * (map.tectonicsplates.grid[x][y]%3), 255});
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                    
+                    //DrawText(TextFormat("%d",map.tectonicsplates.grid[x][y]),x * tileSize, y * tileSize,3,(Color){0,0,0,255});
+                    
+                    //Köppen
 
+                    //DrawText(map.tectonicsplates.grid[x][y],x*tileSize,y*tileSize,11,(Color){200,200,255,255});
+                    // switch (map.data[x][y][KOPPEN])
+                    // {
+                    // case TILE_TYPE_AF:
+                    //     DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, (Color){0, 0, 255, 255});
+                    //     puts("One Koppen AF comming right up");
+                    // default:
+                    //     break;
+                    // }
+                }
+                
+            }
+            // for(int i = 0 ; i < tectonicsCount; i++){
+            //     DrawRectangle(map.tectonicsplates.centersX[i] * tileSize, map.tectonicsplates.centersY[i] * tileSize, tileSize, tileSize, (Color){0, 0, 255, 255});
+            // }
             
             EndDrawing();
         }
