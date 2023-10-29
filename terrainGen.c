@@ -7,13 +7,13 @@
 #include "raymath.h"
 
 
-const int worldSize = 1440;
+const int worldSize = 900;
 const int amountOfTectonics = 12+8;
 const int weightRange = 2;
 
 typedef enum TileTypeIndex
 {
-    EMPTY_OR_MOUNTAIN,
+    LAND_WATER_MOUNTAIN,
     KOPPEN,
     WATER_CURRENT,
     WIND_CURRENT,
@@ -81,6 +81,10 @@ typedef enum Directions
 typedef struct Tectonicplates{
     int grid [worldSize][worldSize];
     bool water[amountOfTectonics];
+    short adjacenyMatrix[amountOfTectonics][amountOfTectonics];
+    Vector2 speed[amountOfTectonics];
+    bool edges[worldSize][worldSize];
+
 }Tectonicplates;
 
 typedef struct Terrain
@@ -93,17 +97,17 @@ typedef struct Terrain
 Terrain map;
 
 //Creates tectonic plates, tectonics count should be smaller than world size by a large margin
-Tectonicplates TectonicplatesCreator(int tectonicsCount){
+Tectonicplates TectonicplatesCreator(){
     Tectonicplates tectonicsplate;
-    int indexX [tectonicsCount];
-    int indexY [tectonicsCount];
-    float indexWeight[tectonicsCount];
+    int indexX [amountOfTectonics];
+    int indexY [amountOfTectonics];
+    float indexWeight[amountOfTectonics];
     for(int i = 0; i < worldSize; i ++){
         for(int j = 0; j < worldSize; j ++){
             tectonicsplate.grid[j][i] = 0;
         }
     }
-    for(int i = 0; i < tectonicsCount; i ++){
+    for(int i = 0; i < amountOfTectonics; i ++){
         tectonicsplate.water[i]=false;
         indexWeight[i] = weightRange+0.5;
 
@@ -120,7 +124,7 @@ Tectonicplates TectonicplatesCreator(int tectonicsCount){
             indexY[i]=worldSize/2;
             break;
         case SOUTH:
-            indexY[i]=worldSize-1;
+            i[indexY]=worldSize-1;
             indexX[i]=worldSize/2;
             break;
         case WEST:
@@ -144,6 +148,9 @@ Tectonicplates TectonicplatesCreator(int tectonicsCount){
             break;
         }
         
+        tectonicsplate.speed[i].x = ((float)(rand()%1000000 ))/500000 ;
+        tectonicsplate.speed[i].y = ((float)(rand()%1000000 ))/500000 ;
+
         tectonicsplate.grid[indexX[i]][indexY[i]]=i;
     }
     for (int i = 0; i < worldSize; i++)
@@ -153,7 +160,7 @@ Tectonicplates TectonicplatesCreator(int tectonicsCount){
             float manhatanDistanceToNearestTectonicplateWeighted = worldSize*10;
             float vectorDistanceWeighted = worldSize*10;
             int indexForNearestTectonicplate=-1;
-            for(int k = 0; k < tectonicsCount; k ++)
+            for(int k = 0; k < amountOfTectonics; k ++)
             {
                 float tempDistance = (abs(j-indexX[k]) + abs(i-indexY[k]));
                 tempDistance *= indexWeight[k];
@@ -171,21 +178,42 @@ Tectonicplates TectonicplatesCreator(int tectonicsCount){
             if(i == 0 || i == worldSize-1 || j == 0 || j == worldSize-1){
                 tectonicsplate.water[indexForNearestTectonicplate] = true;
             }
+            if(i!=0 && j != 0){
+                if(tectonicsplate.grid[j-1][i] != tectonicsplate.grid[j][i]){
+                    tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j-1][i]][tectonicsplate.grid[j][i]]=1;
+                    tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i]][tectonicsplate.grid[j-1][i]]=1;
+                }
+                if(tectonicsplate.grid[j][i-1] != tectonicsplate.grid[j][i]){
+                    //FIX FIX FIX FIX FIX FIX
+                    tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i-1]][tectonicsplate.grid[j][i]]=1;
+                    tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i]][tectonicsplate.grid[j][i-1]]=1;
+                }
+            }
         }
     }
     
-    for(int i = 0; i <= tectonicsCount; i ++){
+    for(int i = 0; i <= amountOfTectonics; i ++){
     }
     return tectonicsplate;
 }
 
 void TerrainGenerator(){
-    map;
-    for (int i = 0; i < worldSize; i++)
+    map.tectonicsplates = TectonicplatesCreator();
+    for (int y = 0; y < worldSize; y++)
     {
-        for(int j = 0; j < worldSize; j ++){
-            map.data[j][i][0]=TILE_TYPE_WATER;
+        for(int x = 0; x < worldSize; x ++){
+            if(map.tectonicsplates.water[map.tectonicsplates.grid[x][y]]==true ){
+                map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_WATER;
+            }
+            else{
+                map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_LAND;
+            }
         }
     }
-    map.tectonicsplates = TectonicplatesCreator(amountOfTectonics);
+    
 }
+
+
+//Elevation randomised slightly
+// kvot av plattors index
+// plattors riktnigar (vektor)
