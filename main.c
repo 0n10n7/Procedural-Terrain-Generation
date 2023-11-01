@@ -16,8 +16,7 @@ typedef enum GameState
 {
     STATE_MENU,
     STATE_GAME,
-    STATE_SPELLBOOK,
-    STATE_GAMEOVER
+    STATE_KOPPEN,
 } GameState;
 typedef enum View
 {
@@ -75,7 +74,7 @@ int main()
                 gameState = STATE_GAME;
             }
             else if(eDown){
-                gameState = STATE_SPELLBOOK;
+                gameState = STATE_KOPPEN;
             }
         }
         break;
@@ -88,7 +87,6 @@ int main()
             aDown = IsKeyDown(KEY_A);
             sDown = IsKeyDown(KEY_S);
             dDown = IsKeyDown(KEY_D);
-            bool water = true;
             if(executePressed){
                 TerrainGenerator();
             }
@@ -125,7 +123,18 @@ int main()
                             for (int y = 0; y < worldSize; y++)
                             {
                                 //DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, (Color){10 *(map.tectonicsplates.grid[x][y]%11) + 70 , 50 * (map.tectonicsplates.grid[x][y]%5), 70 * (map.tectonicsplates.grid[x][y]%3), 255});
-                                DrawPixel((x)-cameraViewX, (y ) -cameraViewY, (Color){10 *(map.tectonicsplates.grid[x][y]%11) + 70 , 50 * (map.tectonicsplates.grid[x][y]%5), 70 * (map.tectonicsplates.grid[x][y]%3), 255});
+                                switch (map.tectonicsplates.borders[x][y])
+                                {
+                                case true:
+                                    DrawPixel((x)-cameraViewX, (y ) -cameraViewY, (Color){0,0,0, 255});
+                                    break;
+                                
+                                default:
+                                    DrawPixel((x)-cameraViewX, (y ) -cameraViewY, (Color){10 *(map.tectonicsplates.grid[x][y]%11) + 70 , 50 * (map.tectonicsplates.grid[x][y]%5), 70 * (map.tectonicsplates.grid[x][y]%3), 255});
+
+                                    break;
+                                }
+                                
                             }
                                 
                         }
@@ -163,7 +172,7 @@ int main()
                         {
                             for (int y = 0; y < worldSize; y++)
                             {
-                                DrawRectangle(x * tileSize, y * tileSize, tileSize, tileSize, (Color){255 / (255/map.elevation[x][y]), 255 / (255/map.elevation[x][y]), 255 / (255/map.elevation[x][y]), 255});
+                                DrawPixel((x)-cameraViewX, (y ) -cameraViewY, (Color){ map.elevation[x][y]%255, 0, 0, 255});
                             }
                         }
                         break;
@@ -191,7 +200,7 @@ int main()
             EndDrawing();
         }
         break;
-        case STATE_SPELLBOOK:
+        case STATE_KOPPEN:
         {
             executePressed = IsKeyPressed(KEY_DOWN);
             BeginDrawing();
@@ -200,16 +209,8 @@ int main()
             if(executePressed){
                 gameState = STATE_GAME;
             }
+            break;
         }
-        break;
-        case STATE_GAMEOVER:
-        {
-            
-            BeginDrawing();
-            ClearBackground(BLACK);
-            EndDrawing();
-        }
-        break;
 
         default:
             break;

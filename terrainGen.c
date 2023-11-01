@@ -83,7 +83,7 @@ typedef struct Tectonicplates{
     bool water[amountOfTectonics];
     short adjacenyMatrix[amountOfTectonics][amountOfTectonics];
     Vector2 speed[amountOfTectonics];
-    bool edges[worldSize][worldSize];
+    bool borders[worldSize][worldSize];
 
 }Tectonicplates;
 
@@ -102,6 +102,7 @@ Tectonicplates TectonicplatesCreator(){
     int indexX [amountOfTectonics];
     int indexY [amountOfTectonics];
     float indexWeight[amountOfTectonics];
+
     for(int i = 0; i < worldSize; i ++){
         for(int j = 0; j < worldSize; j ++){
             tectonicsplate.grid[j][i] = 0;
@@ -148,9 +149,14 @@ Tectonicplates TectonicplatesCreator(){
             break;
         }
         
-        tectonicsplate.speed[i].x = ((float)(rand()%1000000 ))/500000 ;
-        tectonicsplate.speed[i].y = ((float)(rand()%1000000 ))/500000 ;
-
+        tectonicsplate.speed[i].x = ((float)(rand()%1000000 ))/100000 -5;
+        tectonicsplate.speed[i].y = ((float)(rand()%1000000 ))/100000 -5;
+        if(i != 0){
+            printf("angle between %f, %f : %f, %f : %f\n",tectonicsplate.speed[i-1].x,tectonicsplate.speed[i-1].y,tectonicsplate.speed[i].x,tectonicsplate.speed[i].y,Vector2Angle(tectonicsplate.speed[i-1],tectonicsplate.speed[i])*(180/PI));
+            printf("angle between %f, %f : %f, %f : %f\n",tectonicsplate.speed[i].x,tectonicsplate.speed[i].y,tectonicsplate.speed[i-1].x,tectonicsplate.speed[i-1].y,Vector2Angle(tectonicsplate.speed[i],tectonicsplate.speed[i-1])*(180/PI));
+        }
+        printf("%f , %f\n",tectonicsplate.speed[i].x,tectonicsplate.speed[i].y);
+        
         tectonicsplate.grid[indexX[i]][indexY[i]]=i;
     }
     for (int i = 0; i < worldSize; i++)
@@ -179,21 +185,22 @@ Tectonicplates TectonicplatesCreator(){
                 tectonicsplate.water[indexForNearestTectonicplate] = true;
             }
             if(i!=0 && j != 0){
+                tectonicsplate.borders[j][i]=false;
                 if(tectonicsplate.grid[j-1][i] != tectonicsplate.grid[j][i]){
                     tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j-1][i]][tectonicsplate.grid[j][i]]=1;
                     tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i]][tectonicsplate.grid[j-1][i]]=1;
+                    tectonicsplate.borders[j][i]=true;
                 }
                 if(tectonicsplate.grid[j][i-1] != tectonicsplate.grid[j][i]){
                     //FIX FIX FIX FIX FIX FIX
                     tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i-1]][tectonicsplate.grid[j][i]]=1;
                     tectonicsplate.adjacenyMatrix[tectonicsplate.grid[j][i]][tectonicsplate.grid[j][i-1]]=1;
+                    tectonicsplate.borders[j][i]=true;
                 }
             }
         }
     }
     
-    for(int i = 0; i <= amountOfTectonics; i ++){
-    }
     return tectonicsplate;
 }
 
@@ -204,13 +211,104 @@ void TerrainGenerator(){
         for(int x = 0; x < worldSize; x ++){
             if(map.tectonicsplates.water[map.tectonicsplates.grid[x][y]]==true ){
                 map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_WATER;
+                map.elevation[x][y]= -1 * (rand()%100 + 100);
             }
             else{
                 map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_LAND;
+                map.elevation[x][y]= rand()%100;
             }
         }
     }
-    
+    for(int i = 0; i < amountOfTectonics; i++){
+        for(int j = 0; j < amountOfTectonics; j ++){
+            if(map.tectonicsplates.adjacenyMatrix[i][j]!=0){
+                float angle = Vector2Angle(map.tectonicsplates.speed[i],map.tectonicsplates.speed[j])*(180/PI);
+                //valley
+                if(angle<= (float)90){
+                    for (int y = 0; y < worldSize; y++){
+                        for (int x = 0; x < worldSize; x++){
+                            if (map.tectonicsplates.borders[x][y])
+                            {
+                                for(int k = 0; k < (rand()%10 + 1)*(int)(Vector2Length(map.tectonicsplates.speed[i])*Vector2Length(map.tectonicsplates.speed[j])/5) ; k++){
+                                    int heightRandomiser = (Vector2Length(map.tectonicsplates.speed[i])*Vector2Length(map.tectonicsplates.speed[j])*(rand()%11))/(k+1);
+                                    if(x+k < worldSize && x-k > 0){
+                                        map.elevation[x+k][y] -= heightRandomiser;
+                                        map.elevation[x-k][y] -= heightRandomiser;
+                                    }
+                                    if(y+k < worldSize && y-k > 0){
+                                        map.elevation[x][y+k] -= heightRandomiser;
+                                        map.elevation[x][y-k] -= heightRandomiser;
+                                    }
+                                    if(x+k < worldSize && x-k > 0 && y+k < worldSize && y-k > 0){
+                                        map.elevation[x+k][y+k] -= heightRandomiser/2;
+                                        map.elevation[x-k][y-k] -= heightRandomiser/2;
+                                    }
+                                    
+                                    // attempt att a fancy algorithm 
+                                    // if(x+k < worldSize && x-k > 0){
+                                    //     map.elevation[x+k][y] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x-k][y] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                    // if(y+k < worldSize && y-k > 0){
+                                    //     map.elevation[x][y+k] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x][y-k] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                    // if(x+k < worldSize && x-k > 0 && y+k < worldSize && y-k > 0){
+                                    //     map.elevation[x+k][y+k] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x-k][y-k] -= abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                }
+                            } 
+                            if (map.elevation[x][y] < 0 ){
+                                map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_WATER;
+                            }
+                        }
+                    }
+                    
+                }
+                //mountain
+                if(angle>= (float)90){
+                    for (int y = 0; y < worldSize; y++){
+                        for (int x = 0; x < worldSize; x++){
+                            if (map.tectonicsplates.borders[x][y])
+                            {
+                                for(int k = 0; k < (rand()%10)*(int)(Vector2Length(map.tectonicsplates.speed[i])*Vector2Length(map.tectonicsplates.speed[j])/5) ; k++){
+                                    int heightRandomiser = (Vector2Length(map.tectonicsplates.speed[i])*Vector2Length(map.tectonicsplates.speed[j])*(rand()%16))/(k+1);
+                                    if(x+k < worldSize && x-k > 0){
+                                        map.elevation[x+k][y] += heightRandomiser;
+                                        map.elevation[x-k][y] += heightRandomiser;
+                                    }
+                                    if(y+k < worldSize && y-k > 0){
+                                        map.elevation[x][y+k] += heightRandomiser;
+                                        map.elevation[x][y-k] += heightRandomiser;
+                                    }
+                                    if(x+k < worldSize && x-k > 0 && y+k < worldSize && y-k > 0){
+                                        map.elevation[x+k][y+k] += heightRandomiser/2;
+                                        map.elevation[x-k][y-k] += heightRandomiser/2;
+                                    }
+                                    // if(x+k < worldSize && x-k > 0){
+                                    //     map.elevation[x+k][y] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x-k][y] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                    // if(y+k < worldSize && y-k > 0){
+                                    //     map.elevation[x][y+k] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x][y-k] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                    // if(x+k < worldSize && x-k > 0 && y+k < worldSize && y-k > 0){
+                                    //     map.elevation[x+k][y+k] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    //     map.elevation[x-k][y-k] += abs((int)(angle*map.tectonicsplates.speed[j].x*map.tectonicsplates.speed[j].y*map.tectonicsplates.speed[i].x*map.tectonicsplates.speed[i].y))*100/(k);
+                                    // }
+                                }
+                            }
+                            if (map.elevation[x][y] >= 0 ){
+                                map.data[x][y][LAND_WATER_MOUNTAIN]=TILE_TYPE_LAND;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
